@@ -9,7 +9,7 @@ python3 make.py --to Dave --company Shell --icp "COO, Chief Operating Officer, V
 ```
 It prints the link to send. `--publish` commits and pushes; GitHub Pages goes live within a minute.
 
-Or, with no publishing at all, open `<live-url>/?build=1`, fill the form and copy the long link.
+Or, with no publishing at all, open https://kieran-hooper-warren.github.io/icp-fishing/?build=1, fill the form and copy the long link.
 
 ## Files
 - `index.html` — the game and the template.

@@ -13,7 +13,7 @@ import argparse, json, os, re, sys, unicodedata
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "index.html")
 SITE = os.path.join(HERE, "docs")
-PAGES_URL = os.environ.get("ICPFISH_URL", "").rstrip("/")
+PAGES_URL = os.environ.get("ICPFISH_URL", "https://kieran-hooper-warren.github.io/icp-fishing").rstrip("/")
 MARK = re.compile(r'<script type="application/json" id="cfg">.*?</script>', re.S)
 
 def slugify(s):
