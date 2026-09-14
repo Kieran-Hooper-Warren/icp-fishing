@@ -36,6 +36,10 @@ def pick(headers, names):
     for n in names:
         if n in low:
             return low[n]
+    for h in headers:  # fuzzy: alias appears inside the header, e.g. "Title they sell to"
+        hl = h.lower()
+        if any(n in hl for n in names if len(n) > 2):
+            return h
     return None
 
 def qlink(cfg):
