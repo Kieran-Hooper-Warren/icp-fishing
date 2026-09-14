@@ -79,6 +79,17 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-sele
 .float.good{color:#7cf5b8}.float.bad{color:#ff8a80}
 .float.nosig{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#dbe7ee;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:999px;text-shadow:none}
 @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-56px);opacity:0}}
+.sayw{position:absolute;left:0;top:0;transform:translateX(-50%);pointer-events:none;z-index:4}
+.say{position:relative;background:#fff;color:#0b2a3a;font-weight:700;font-size:13px;line-height:1.2;padding:7px 11px;border-radius:13px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.35);animation:say 1.5s ease-out forwards}
+.say::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+.say.junk{background:#ffe8e3;color:#7a1f10}.say.icp{background:#dcfbe9;color:#0b4d2c}.say.nosig{background:#e6eef3;color:#2b3f4b}
+@keyframes say{0%{opacity:0;transform:translateY(8px) scale(.85)}12%{opacity:1;transform:translateY(0) scale(1)}78%{opacity:1;transform:translateY(-6px)}100%{opacity:0;transform:translateY(-18px)}}
+.beat{display:inline-block;font-size:13px;font-weight:700;color:#0b2a3a;background:#ffd23f;border-radius:999px;padding:6px 12px;margin:-8px 0 16px;max-width:100%;overflow-wrap:anywhere}
+.beat[hidden]{display:none}
+.vs{font-size:14px;color:#ffd23f;font-weight:700;margin:-8px 0 12px}
+.vs[hidden]{display:none}
+.btn.share{margin-top:10px;min-height:46px;font-size:15px;background:rgba(255,255,255,.12);color:#fff}
+#card{display:none}
 .ripple{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid rgba(255,255,255,.55);border-radius:50%;animation:rip .45s ease-out forwards;pointer-events:none}
 @keyframes rip{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.5);opacity:0}}
 
@@ -148,6 +159,7 @@ html.build #builder{display:block}
       <div class="madefor" id="madeFor"></div>
       <h1>🎣 ICP Fishing</h1>
       <p class="lead" id="startLine"></p>
+      <div class="beat" id="beatLine" hidden></div>
       <button class="btn" id="btnStart" type="button">Cast off</button>
     </div>
   </section>
@@ -170,9 +182,11 @@ html.build #builder{display:block}
         <div class="sc" id="sc1"><div class="t">Round 1</div><div class="n" id="r1">0</div><div class="d" id="r1d"></div></div>
         <div class="sc" id="sc2"><div class="t">Round 2</div><div class="n" id="r2">0</div><div class="d" id="r2d"></div></div>
       </div>
+      <div class="vs" id="vsLine" hidden></div>
       <p class="mult" id="multLine"></p>
       <p class="quote" id="quoteLine"></p>
       <a class="btn" id="cta" href="#" rel="noopener">Reply</a>
+      <button class="btn share" id="share" type="button">Share my score</button>
       <div class="best" id="best" hidden></div>
     </div>
   </section>
@@ -244,6 +258,7 @@ function article(t){return /^[aeiou]/i.test(t)?'an':'a';}
 
 var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=expandTitles(list('icp',DEF_ICP)),
     CTA=safeUrl(str('cta',DEFAULT_CTA)), CTA_LABEL='Say hi to the guy asking for your attention';
+var BEAT=str('beat',''),BY=str('by','');if(!/^-?\d{1,3}$/.test(BEAT))BEAT='';
 var icpSet={};ICP.forEach(function(t){icpSet[norm(t)]=1;});
 var JUNK=list('junk',DEF_JUNK).filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=DEF_JUNK.filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=['Student','Recruiter','Retired'];
 
@@ -296,6 +311,20 @@ function fill(sel,parts){var el=$(sel);el.textContent='';parts.forEach(function(
   for(i=0;i<9;i++){b=document.createElement('div');b.className='bubble';var sz=5+Math.random()*10;b.style.width=b.style.height=sz+'px';b.style.left=(Math.random()*96)+'%';b.style.animationDuration=(7+Math.random()*8)+'s';b.style.animationDelay=(-Math.random()*14)+'s';w.appendChild(b);}
   ['w1','w2'].forEach(function(k){var v=document.createElement('div');v.className='wave '+k;w.appendChild(v);});
   sea.appendChild(w);})();
+/* what the fish say when caught */
+var JUNK_LINES={'student':["I'm a student.","Is this for my dissertation?"],'marketing intern':["I'll pass this to my manager.","I start Monday."],'growth consultant':["Let's hop on a call. About MY services.","I can 10x you."],'founder 2 person startup':["We're pre-revenue.","Can you do it for equity?"],'recruiter':["Are you open to opportunities?","Great profile! Quick chat?"],'freelance web designer':["Need a website?","I do logos too."],'vp sales competitor':["We're the competition.","Nice pitch. Stealing it."],'crypto advisor':["Ever heard of Bitcoin?","This is financial advice."],'business coach':["Let me coach you.","Mindset first."],'retired':["I'm retired.","Wrong decade, mate."]};
+var JUNK_POOL=["Unsubscribe.","Wrong person.","Not my department.","Who is this?","Please remove me.","Not it.","Nope."];
+var ICP_POOL=["Finally, someone relevant.","Go on…","You've got 30 seconds.","Send me the deck.","Timing's good, actually.","I was literally just looking at this."];
+var SIG_LINES={'hiring':"We're hiring, so yes. Talk.",'just raised':"Just raised. Budget's real.",'new cto':"New CTO. Everything's up for review.",'switched tooling':"We just switched tools. Again.",'new office':"New office, new problems.",'hiring ops':"Hiring ops. Send help."};
+var lastSaid='';
+function pick(arr){if(arr.length<2)return arr[0];var t;do{t=arr[Math.floor(Math.random()*arr.length)];}while(t===lastSaid);lastSaid=t;return t;}
+function lineFor(f){
+  if(f.isIcp){if(f.signal&&SIG_LINES[norm(f.signal)]&&Math.random()<0.7)return SIG_LINES[norm(f.signal)];return pick(ICP_POOL);}
+  var k=norm(f.title);if(JUNK_LINES[k])return pick(JUNK_LINES[k]);return pick(JUNK_POOL);
+}
+function say(f,txt,cls){var w=document.createElement('div');w.className='sayw';var b=document.createElement('div');b.className='say '+cls;b.textContent=txt;w.appendChild(b);
+  var cx=Math.max(96,Math.min(seaW-96,f.x+FW/2)),cy=Math.max(58,f.y-6);w.style.left=cx+'px';w.style.top=cy+'px';
+  b.addEventListener('animationend',function(){w.remove();});sea.appendChild(w);}
 function hint(txt){var h=document.createElement('div');h.className='hintpill';h.textContent=txt;h.addEventListener('animationend',function(){h.remove();});sea.appendChild(h);}
 
 /* personalised copy */
@@ -303,6 +332,7 @@ var T=ICP[0];
 if(TO!=='You')document.title=TO+"'s ICP Fishing";
 setText('#madeFor',TO==='You'?'Your personal game':('Made for '+TO+(COMPANY?' · '+COMPANY:'')));
 fill('#startLine',[TO+', you have 10 seconds to land '+article(T)+' ',{b:T},COMPANY?' for '+COMPANY+'.':'.']);
+if(BEAT!==''){$('#beatLine').textContent=(BY||'Someone')+' scored '+BEAT+' in Round 2. Beat it.';$('#beatLine').hidden=false;}
 setText('#ruleSmall',article(T).replace(/^a/,'A')+' '+T+' with no signal bounces off the line. So does everything else.');
 
 function shade(hex,amt){var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,b=n&255;
@@ -384,7 +414,7 @@ function spawn(initial){
 }
 
 function clearSea(){fish.forEach(function(f){f.el.remove();if(f.line)f.line.remove();});fish=[];fishById={};
-  Array.prototype.forEach.call(sea.querySelectorAll('.line,.float,.ripple'),function(n){n.remove();});}
+  Array.prototype.forEach.call(sea.querySelectorAll('.line,.float,.ripple,.sayw,.hintpill'),function(n){n.remove();});}
 
 function startRound(n){
   round=n;score=0;icpCaught=0;junkCaught=0;elapsed=0;shownSec=-1;spawnTimer=0;lastLanes=[];
@@ -430,11 +460,13 @@ function hook(f,t){
   var d=f.isIcp?1:-1;score+=d;if(f.isIcp)icpCaught++;else junkCaught++;
   scoreEl.textContent=String(score);scoreEl.classList.remove('pop');void scoreEl.offsetWidth;scoreEl.classList.add('pop');
   floatText(Math.round(cx-16),Math.round(cy-30),f.isIcp?'+1':'−1',f.isIcp?'good':'bad');
+  say(f,lineFor(f),f.isIcp?'icp':'junk');
 }
 function bounce(f){
   if(f.bouncing)return;f.bouncing=true;f.el.classList.add('bounce');
   setTimeout(function(){f.bouncing=false;f.el.classList.remove('bounce');},460);
   floatText(Math.round(f.x+FW/2-38),Math.round(f.y+FH/2-34),'no signal','nosig');
+  say(f,f.isIcp?'No signal. Not now.':'Not even close.','nosig');
 }
 
 sea.addEventListener('pointerdown',function(e){
@@ -473,6 +505,8 @@ function showResults(){
   else if(r1.icp>0)parts=['Nothing landed in Round 2. The signals were there, but they only help if you cast at them.'];
   else parts=['Not a single '+T+' landed in either round. They were in there.'];
   fill('#multLine',parts);
+  if(BEAT!==''){var vs=$('#vsLine');vs.textContent=r2.score>+BEAT?'You beat '+(BY||'their')+(BY?"'s ":' ')+BEAT+'.':(r2.score===+BEAT?'Level with '+(BY||'them')+' on '+BEAT+'.':(BY||'Their')+(BY?"'s ":' ')+BEAT+' still stands.');vs.hidden=false;}
+  setupShare(r1,r2);
   fill('#quoteLine',['“Same sea, same time. The only thing that changed was knowing where to cast.” ',{b:'— '+FROM}]);
   var cta=$('#cta');cta.textContent=CTA_LABEL;cta.setAttribute('href',CTA);if(CTA==='#')cta.addEventListener('click',function(e){e.preventDefault();});
   try{var key='icpfish.best2',prev=localStorage.getItem(key);
@@ -480,6 +514,59 @@ function showResults(){
     if(prev==null||prev===''||isNaN(+prev)||r2.score>+prev)localStorage.setItem(key,String(r2.score));
   }catch(e){}
   show('s-results');
+}
+
+/* ---------- share: results card image + beat-my-score link ---------- */
+function shareUrl(r2){
+  var base=(Object.keys(baked).length?new URL('../',location.href).href:location.href.split(/[?#]/)[0]);
+  var q=[];var icpRaw=raw('icp');if(icpRaw)q.push('icp='+encodeURIComponent(icpRaw).replace(/%2C/g,','));
+  if(FROM!=='Kieran')q.push('from='+encodeURIComponent(FROM));if(CTA!==DEFAULT_CTA&&CTA!=='#')q.push('cta='+encodeURIComponent(CTA));
+  if(TO!=='You')q.push('by='+encodeURIComponent(TO));q.push('beat='+r2.score);
+  return base+'?'+q.join('&');
+}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function fishShape(c,x,y,sz,col,flip){c.save();c.translate(x,y);if(flip)c.scale(-1,1);c.fillStyle=col;c.beginPath();c.ellipse(0,0,sz,sz*.55,0,0,Math.PI*2);c.fill();c.beginPath();c.moveTo(-sz*.8,0);c.lineTo(-sz*1.5,-sz*.6);c.lineTo(-sz*1.5,sz*.6);c.closePath();c.fill();c.fillStyle='#fff';c.beginPath();c.arc(sz*.55,-sz*.12,sz*.16,0,Math.PI*2);c.fill();c.fillStyle='#0b2a3a';c.beginPath();c.arc(sz*.6,-sz*.1,sz*.08,0,Math.PI*2);c.fill();c.restore();}
+function drawCard(r1,r2){
+  var W=1080,H=1080,cv=document.getElementById('card');if(!cv){cv=document.createElement('canvas');cv.id='card';document.body.appendChild(cv);}
+  cv.width=W;cv.height=H;var c=cv.getContext('2d');
+  var g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a2f5c');g.addColorStop(.5,'#0d5278');g.addColorStop(1,'#107a88');c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.globalAlpha=.9;var cols=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];
+  for(var i=0;i<14;i++){fishShape(c,80+((i*173)%920),120+((i*257)%880),26+(i%3)*8,cols[i%cols.length],i%2===0);}c.globalAlpha=1;
+  c.fillStyle='rgba(4,25,45,.86)';rr(c,90,150,900,780,44);c.fill();c.strokeStyle='rgba(255,255,255,.14)';c.lineWidth=3;c.stroke();
+  c.textAlign='center';c.fillStyle='#ffd23f';c.font='700 30px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+  c.fillText((TO==='You'?'ICP FISHING':('MADE FOR '+TO+(COMPANY?' · '+COMPANY:'')).toUpperCase()).slice(0,40),W/2,230);
+  c.fillStyle='#fff';c.font='900 76px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';c.fillText('🎣 ICP Fishing',W/2,330);
+  function box(x,label,n,sub,win){c.fillStyle=win?'rgba(255,210,63,.16)':'rgba(255,255,255,.08)';rr(c,x,400,380,260,28);c.fill();if(win){c.strokeStyle='rgba(255,210,63,.6)';c.lineWidth=3;c.stroke();}
+    c.fillStyle='#9fd3e8';c.font='700 26px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(label,x+190,450);
+    c.fillStyle='#fff';c.font='900 130px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(String(n),x+190,580);
+    c.fillStyle='#bfe3f2';c.font='600 24px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(sub,x+190,632);}
+  box(130,'ROUND 1',r1.score,r1.icp+' × '+T.slice(0,18)+', '+r1.junk+' junk',false);box(570,'ROUND 2',r2.score,r2.icp+' × '+T.slice(0,18)+', 0 junk',r2.score>r1.score);
+  c.fillStyle='#fff';c.font='600 34px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';
+  c.fillText('Same sea. 10 seconds. The only thing that changed',W/2,730);c.fillText('was knowing where to cast.',W/2,778);
+  c.fillStyle='#ffd23f';c.font='700 30px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText('Think you can beat '+r2.score+'? Link in the post.',W/2,860);
+  c.fillStyle='#8fb8cc';c.font='600 24px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText('An outbound experiment by '+FROM,W/2,1000);
+  return cv;
+}
+function setupShare(r1,r2){
+  var btn=$('#share'),url=shareUrl(r2);btn.dataset.url=url;
+  var text=(TO==='You'?'I':TO)+' scored '+r2.score+' in Round 2 of ICP Fishing. Same sea, 10 seconds, just better signals. Beat it: '+url;
+  btn.onclick=function(){
+    btn.textContent='Sharing…';var cv=drawCard(r1,r2);setTimeout(function(){if(btn.textContent==='Sharing…')btn.textContent='Share my score';},4000);
+    function copyLink(){var done=function(){btn.textContent='Link copied. Paste it anywhere.';};
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,function(){btn.textContent=url;});else btn.textContent=url;}
+    function reset(){setTimeout(function(){btn.textContent='Share my score';},2500);}
+    var blobReady=new Promise(function(res){if(cv.toBlob)cv.toBlob(res,'image/png');else res(null);});
+    blobReady.then(function(blob){
+      var file=null;try{if(blob&&window.File)file=new File([blob],'icp-fishing-'+r2.score+'.png',{type:'image/png'});}catch(e){}
+      if(navigator.share){
+        var data={title:'ICP Fishing',text:text,url:url};
+        if(file&&navigator.canShare&&navigator.canShare({files:[file]}))data={title:'ICP Fishing',text:text,files:[file]};
+        return navigator.share(data).then(function(){btn.textContent='Shared ✓';reset();},function(){copyLink();reset();});
+      }
+      if(blob){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='icp-fishing-'+r2.score+'.png';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);}
+      copyLink();reset();
+    });
+  };
 }
 
 $('#btnStart').addEventListener('click',function(){startRound(1);});
