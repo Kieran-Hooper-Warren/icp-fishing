@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ICP Fishing</title>
+<script type="application/json" id="cfg">{"to": "Dave", "icp": "COO, Chief Operating Officer, VP Operations", "from": "Kieran", "company": "Shell"}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0a2f5c;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{position:fixed;inset:0;overflow:hidden;background:linear-gradient(180deg,#0a2f5c 0%,#0d5278 45%,#107a88 100%)}
+#sea{position:absolute;inset:0;overflow:hidden}
+#sea::before{content:"";position:absolute;left:-10%;right:-10%;top:0;height:120px;background:radial-gradient(ellipse at 50% -40%,rgba(255,255,255,.18),rgba(255,255,255,0) 70%);pointer-events:none}
+.weed{position:absolute;bottom:-6px;width:18px;height:90px;border-radius:50% 50% 0 0;background:rgba(0,0,0,.18);pointer-events:none}
+#hud[hidden]{display:none}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;pointer-events:none;z-index:5;font-weight:700}
+.pill{background:rgba(0,0,0,.38);border-radius:999px;padding:7px 13px;font-size:15px;white-space:nowrap}
+#roundLabel .r2{color:#ffd23f}
+#timer{font-variant-numeric:tabular-nums;min-width:58px;text-align:center}
+#timer.low{color:#ffb4ac;background:rgba(120,0,0,.45)}
+#score{display:inline-block;min-width:1.2em;text-align:center;font-variant-numeric:tabular-nums}
+#score.pop{animation:pop .25s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+
+.fish{position:absolute;left:0;top:0;width:176px;height:84px;display:flex;align-items:center;justify-content:center;will-change:transform;cursor:pointer}
+.inner{display:flex;flex-direction:column;align-items:center;position:relative;pointer-events:none}
+.halo{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,63,.6) 0%,rgba(255,210,63,0) 62%);opacity:0}
+.fish.signal .halo{opacity:1;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(.8)}50%{transform:scale(1.15)}}
+.sig{visibility:hidden;position:relative;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;background:#ffd23f;color:#3b2a00;padding:2px 9px;border-radius:999px;margin-bottom:3px;box-shadow:0 0 0 2px rgba(255,210,63,.35),0 0 16px 5px rgba(255,210,63,.8)}
+.fish.signal .sig{visibility:visible}
+.body{width:58px;height:29px;display:block;position:relative}
+.fish.left .body{transform:scaleX(-1)}
+.label{margin-top:3px;position:relative;background:rgba(255,255,255,.96);color:#0b2a3a;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;max-width:168px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.fish.hooked{pointer-events:none}
+.fish.hooked .inner{animation:hook .42s ease-in forwards}
+@keyframes hook{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(-90px) rotate(-30deg) scale(.45);opacity:0}}
+.fish.bounce .inner{animation:bounce .45s ease-out}
+@keyframes bounce{0%{transform:translateX(0)}20%{transform:translateX(-9px) rotate(-6deg)}45%{transform:translateX(8px) rotate(5deg)}70%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+.fish.dim .label{opacity:.78}
+.line{position:absolute;left:0;top:0;width:2px;background:rgba(255,255,255,.85);transform-origin:0 0;animation:drop .12s linear;pointer-events:none}
+@keyframes drop{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.float{position:absolute;left:0;top:0;font-weight:900;font-size:28px;pointer-events:none;animation:floatUp .85s ease-out forwards;text-shadow:0 2px 4px rgba(0,0,0,.45);white-space:nowrap}
+.float.good{color:#7cf5b8}.float.bad{color:#ff8a80}
+.float.nosig{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#dbe7ee;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:999px;text-shadow:none}
+@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-56px);opacity:0}}
+.ripple{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid rgba(255,255,255,.55);border-radius:50%;animation:rip .45s ease-out forwards;pointer-events:none}
+@keyframes rip{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.5);opacity:0}}
+
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.screen[hidden]{display:none}
+.card{background:rgba(4,25,45,.86);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 22px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.madefor{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#ffd23f;background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.35);border-radius:999px;padding:5px 12px;margin-bottom:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+h1{font-size:34px;font-weight:900;letter-spacing:-.02em;margin-bottom:10px}
+h2{font-size:22px;font-weight:900;letter-spacing:-.01em;margin-bottom:6px}
+.lead{font-size:17px;line-height:1.4;color:#dbeafe;margin-bottom:22px;overflow-wrap:anywhere}
+.lead b{color:#ffd23f}
+.rule{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.4);border-radius:14px;padding:12px 14px;margin:0 0 18px;font-size:15px;line-height:1.35;color:#fff}
+.rule .tag{flex:none;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;background:#ffd23f;color:#3b2a00;padding:3px 9px;border-radius:999px;box-shadow:0 0 14px 4px rgba(255,210,63,.7)}
+.rule small{display:block;color:#bfe3f2;font-size:13px;margin-top:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:54px;width:100%;padding:0 20px;border:0;border-radius:14px;background:#ffd23f;color:#1a1200;font-size:18px;font-weight:800;text-decoration:none;cursor:pointer;font-family:inherit;overflow-wrap:anywhere}
+.btn:active{transform:scale(.98)}
+.big{font-size:64px;font-weight:900;line-height:1;margin:6px 0 10px;font-variant-numeric:tabular-nums}
+.scores{display:flex;gap:12px;justify-content:center;margin:6px 0 16px}
+.sc{flex:1;background:rgba(255,255,255,.08);border-radius:14px;padding:12px 6px}
+.sc .t{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#9fd3e8;margin-bottom:6px}
+.sc .n{font-size:46px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.sc .d{font-size:11.5px;color:#bfe3f2;margin-top:6px;line-height:1.3}
+.sc.win{background:rgba(255,210,63,.16);border:1px solid rgba(255,210,63,.45)}
+.mult{font-size:17px;line-height:1.4;color:#fff;margin-bottom:16px;overflow-wrap:anywhere}
+.mult b{color:#ffd23f;font-size:20px}
+.quote{font-size:14.5px;color:#cfe8f3;line-height:1.45;margin:0 0 18px;font-style:italic;overflow-wrap:anywhere}
+.quote b{font-style:normal;color:#fff;font-weight:700;white-space:nowrap}
+.best{font-size:12px;color:#8fb8cc;margin-top:12px}
+.sub{font-size:13px;color:#9fd3e8;margin-top:-4px;margin-bottom:14px}
+
+#builder{display:none;padding:20px 18px 40px;max-width:560px;margin:0 auto;color:#fff}
+html.build,html.build body{overflow:auto;height:auto;min-height:100%}
+html.build #app{display:none}
+html.build #builder{display:block}
+#builder h1{margin-bottom:4px}
+#builder p{color:#9fd3e8;font-size:14px;margin-bottom:10px;line-height:1.4}
+#builder label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px;color:#bfe3f2}
+#builder input,#builder textarea{width:100%;font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;-webkit-user-select:text;user-select:text}
+#builder textarea{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;line-height:1.4}
+.hint{font-size:12px;color:#8fb8cc;margin-top:5px;line-height:1.4}
+.row{display:flex;gap:10px;margin-top:10px}
+.row .btn{min-height:46px;font-size:16px}
+.btn.ghost{background:rgba(255,255,255,.12);color:#fff}
+#builder h3{font-size:15px;margin:26px 0 4px;color:#ffd23f}
+
+@media (prefers-reduced-motion:reduce){
+  .fish.signal .halo{animation:none;opacity:.9}
+  .btn:active{transform:none}
+}
+@media (min-width:700px){
+  .fish{width:200px}.label{max-width:190px;font-size:13.5px}.body{width:66px;height:33px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sea"></div>
+  <div id="hud" hidden>
+    <span class="pill" id="roundLabel">Round 1</span>
+    <span class="pill" id="timer">30</span>
+    <span class="pill">Score <b id="score">0</b></span>
+  </div>
+
+  <section class="screen" id="s-start">
+    <div class="card">
+      <div class="madefor" id="madeFor"></div>
+      <h1>🎣 ICP Fishing</h1>
+      <p class="lead" id="startLine"></p>
+      <button class="btn" id="btnStart" type="button">Cast off</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-inter" hidden>
+    <div class="card">
+      <h2>Round 1 done</h2>
+      <div class="big" id="interScore">0</div>
+      <p class="sub" id="interSub"></p>
+      <p class="lead">Same sea, same 30 seconds. This time some fish are giving off signals.</p>
+      <div class="rule"><span class="tag">Signal</span><div><b>Only fish with a signal can be hooked.</b><small id="ruleSmall"></small></div></div>
+      <button class="btn" id="btnR2" type="button">Round 2</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-results" hidden>
+    <div class="card">
+      <h2>Same sea. Different catch.</h2>
+      <div class="scores">
+        <div class="sc" id="sc1"><div class="t">Round 1</div><div class="n" id="r1">0</div><div class="d" id="r1d"></div></div>
+        <div class="sc" id="sc2"><div class="t">Round 2</div><div class="n" id="r2">0</div><div class="d" id="r2d"></div></div>
+      </div>
+      <p class="mult" id="multLine"></p>
+      <p class="quote" id="quoteLine"></p>
+      <a class="btn" id="cta" href="#" rel="noopener">Reply</a>
+      <div class="best" id="best" hidden></div>
+    </div>
+  </section>
+</div>
+
+<div id="builder">
+  <h1>🎣 Link builder</h1>
+  <p>Fill in what the prospect should see. Everything updates as you type.</p>
+  <label for="b-to">Prospect first name (to)</label><input id="b-to" data-k="to" placeholder="Dave" autocomplete="off">
+  <label for="b-company">Prospect's company (company)</label><input id="b-company" data-k="company" placeholder="Shell" autocomplete="off">
+  <label for="b-icp">Who they sell to, comma separated (icp)</label><input id="b-icp" data-k="icp" placeholder="COO, Chief Operating Officer, VP Operations" autocomplete="off">
+  <div class="hint">First title is the one named on screen. Max 12.</div>
+  <label for="b-junk">Junk titles, comma separated (junk)</label><input id="b-junk" data-k="junk" placeholder="Leave blank for the built-in list" autocomplete="off">
+  <label for="b-from">Your name (from)</label><input id="b-from" data-k="from" placeholder="Kieran" autocomplete="off">
+  <label for="b-cta">Button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://… or mailto:…" autocomplete="off" inputmode="url">
+  <label for="b-ctaLabel">Button text (ctaLabel)</label><input id="b-ctaLabel" data-k="ctaLabel" placeholder="Reply to Kieran" autocomplete="off">
+
+  <h3>Option A: personal page (clean link)</h3>
+  <p>Downloads a self-contained <span id="b-fname">dave.html</span> with these details baked in. Drop it into your Netlify site folder and send <span id="b-clean">/dave</span>.</p>
+  <div class="row"><button class="btn" id="b-download" type="button">Download page</button></div>
+  <div class="hint" id="b-dlhint"></div>
+
+  <h3>Option B: share link</h3>
+  <label for="b-out">URL with the details in the query string</label><textarea id="b-out" readonly></textarea>
+  <div class="row"><button class="btn ghost" id="b-copy" type="button">Copy link</button><a class="btn ghost" id="b-open" href="#" target="_blank" rel="noopener">Open</a></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var params=new URLSearchParams(location.search);
+var baked={};try{var cfgEl=document.getElementById('cfg');if(cfgEl){var parsed=JSON.parse(cfgEl.textContent||'{}');if(parsed&&typeof parsed==='object')baked=parsed;}}catch(e){}
+var DEF_ICP=['Head of Operations','Operations Director','COO'];
+var DEF_JUNK=['Student','Marketing Intern','Growth Consultant','Founder, 2-person startup','Recruiter','Freelance Web Designer','VP Sales (competitor)','Crypto Advisor','Business Coach','Retired'];
+var SIGNALS=['hiring','just raised','new CTO','switched tooling','new office','hiring ops'];
+var COLORS=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];
+var ROUND_SECS=30, TARGET=8, MAX_LIST=12;
+
+function raw(k){var v=params.get(k);if(v==null&&baked[k]!=null)v=Array.isArray(baked[k])?baked[k].join(','):String(baked[k]);return v;}
+function str(k,d){var v=raw(k);if(v==null)return d;v=v.trim();return v?v.slice(0,80):d;}
+function list(k,d){var v=raw(k);if(v==null||!v.trim())return d.slice();
+  var out=v.split(',').map(function(s){return s.trim().slice(0,60);}).filter(Boolean).slice(0,MAX_LIST);
+  return out.length?out:d.slice();}
+function safeUrl(u){u=(u||'').trim();if(!u)return '#';if(/^\s*(javascript|data|vbscript):/i.test(u))return '#';return u;}
+function article(t){return /^[aeiou]/i.test(t)?'an':'a';}
+
+var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=list('icp',DEF_ICP), JUNK=list('junk',DEF_JUNK),
+    CTA=safeUrl(str('cta','#')), CTA_LABEL=str('ctaLabel','Reply to '+FROM);
+
+/* ---------- Link builder ---------- */
+if(params.get('build')==='1'){
+  document.documentElement.classList.add('build');
+  var inputs=Array.prototype.slice.call(document.querySelectorAll('#builder input[data-k]'));
+  var out=$('#b-out'), open=$('#b-open'), copy=$('#b-copy'), dl=$('#b-download'), dlhint=$('#b-dlhint');
+  var base=location.href.split(/[?#]/)[0];
+  inputs.forEach(function(i){var v=raw(i.dataset.k);if(v)i.value=v;});
+  function slug(){var s=($('#b-to').value.trim()||'prospect').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');return s||'prospect';}
+  function cfg(){var c={};inputs.forEach(function(i){var v=i.value.trim();if(v)c[i.dataset.k]=v;});return c;}
+  function update(){
+    var q=[];inputs.forEach(function(i){var v=i.value.trim();if(v)q.push(i.dataset.k+'='+encodeURIComponent(v).replace(/%2C/g,','));});
+    var url=base+(q.length?'?'+q.join('&'):'');out.value=url;open.href=url;
+    $('#b-fname').textContent=slug()+'.html';$('#b-clean').textContent='/'+slug();
+  }
+  inputs.forEach(function(i){i.addEventListener('input',update);});
+  update();
+  copy.addEventListener('click',function(){
+    var done=function(){copy.textContent='Copied ✓';setTimeout(function(){copy.textContent='Copy link';},1400);};
+    function fallback(){out.focus();out.select();try{document.execCommand('copy');done();}catch(e){copy.textContent='Select + copy manually';}}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(out.value).then(done,fallback);}else fallback();
+  });
+  dl.addEventListener('click',function(){
+    dlhint.textContent='Building…';
+    var json=JSON.stringify(cfg()).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
+    fetch(base,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.text();}).then(function(src){
+      var re=/<script type="application\/json" id="cfg">[\s\S]*?<\/script>/;
+      if(!re.test(src))throw new Error('template marker missing');
+      var html=src.replace(re,function(){return '<script type="application/json" id="cfg">'+json+'<\/script>';});
+      var blob=new Blob([html],{type:'text/html'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slug()+'.html';document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
+      dlhint.textContent='Downloaded '+slug()+'.html. Drop it into the Netlify site folder, redeploy, and send /'+slug()+'.';
+    }).catch(function(e){dlhint.textContent='Could not build the page here ('+e.message+'). This works when the builder is opened over http(s), e.g. on the Netlify site. Use make.py locally instead.';});
+  });
+  return;
+}
+
+/* ---------- Game ---------- */
+var sea=$('#sea'), hud=$('#hud'), timerEl=$('#timer'), scoreEl=$('#score'), roundLabel=$('#roundLabel');
+var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var speedMult=reduced?0.55:1;
+var seaW=0, seaH=0, FW=176, FH=84, TOP_PAD=74, BOT_PAD=16;
+var round=0, running=false, paused=false, raf=null, lastT=null, elapsed=0, shownSec=-1, spawnTimer=0;
+var score=0, icpCaught=0, junkCaught=0, results={1:{score:0,icp:0,junk:0},2:{score:0,icp:0,junk:0}};
+var fish=[], fishById={}, nextId=1;
+var spawnCount=0, icpSlot=0, icpSeen=0, noSigSlot=0, icpIdx=0, junkIdx=0, sigIdx=0, colorIdx=0, lastLanes=[];
+var icpOrder=[], junkOrder=[];
+
+function measure(){seaW=sea.clientWidth;seaH=sea.clientHeight;FW=window.innerWidth>=700?200:176;}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function show(id){['s-start','s-inter','s-results'].forEach(function(s){$('#'+s).hidden=(s!==id);});}
+function setText(sel,t){$(sel).textContent=t;}
+function fill(sel,parts){var el=$(sel);el.textContent='';parts.forEach(function(p){if(typeof p==='string')el.appendChild(document.createTextNode(p));else{var b=document.createElement('b');b.textContent=p.b;el.appendChild(b);}});}
+
+/* decorative seaweed */
+(function(){for(var i=0;i<6;i++){var w=document.createElement('div');w.className='weed';w.style.left=(5+i*17+Math.random()*8)+'%';w.style.height=(50+Math.random()*70)+'px';w.style.transform='rotate('+(Math.random()*16-8)+'deg)';sea.appendChild(w);}})();
+
+/* personalised copy */
+var T=ICP[0];
+if(TO!=='You')document.title=TO+"'s ICP Fishing";
+setText('#madeFor',TO==='You'?'Your personal game':('Made for '+TO+(COMPANY?' · '+COMPANY:'')));
+fill('#startLine',[TO+', you have 30 seconds to land '+article(T)+' ',{b:T},COMPANY?' for '+COMPANY+'.':'.']);
+setText('#ruleSmall',article(T).replace(/^a/,'A')+' '+T+' with no signal bounces off the line. So does everything else.');
+
+function makeFish(f){
+  var el=document.createElement('div');el.className='fish'+(f.vx<0?' left':'')+(f.signal?' signal':'')+(round===2&&!f.signal?' dim':'');el.dataset.id=f.id;
+  var inner=document.createElement('div');inner.className='inner';
+  var halo=document.createElement('div');halo.className='halo';inner.appendChild(halo);
+  var sig=document.createElement('div');sig.className='sig';sig.textContent=f.signal||'';inner.appendChild(sig);
+  var ns='http://www.w3.org/2000/svg';
+  var svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 64 32');svg.setAttribute('class','body');svg.setAttribute('aria-hidden','true');
+  var tail=document.createElementNS(ns,'polygon');tail.setAttribute('points','42,16 62,4 62,28');tail.setAttribute('fill',f.color);
+  var fin=document.createElementNS(ns,'polygon');fin.setAttribute('points','20,7 34,7 30,1');fin.setAttribute('fill',f.color);fin.setAttribute('opacity','.8');
+  var body=document.createElementNS(ns,'ellipse');body.setAttribute('cx','26');body.setAttribute('cy','17');body.setAttribute('rx','22');body.setAttribute('ry','12');body.setAttribute('fill',f.color);
+  var eye=document.createElementNS(ns,'circle');eye.setAttribute('cx','12');eye.setAttribute('cy','14');eye.setAttribute('r','3');eye.setAttribute('fill','#0b2a3a');
+  var glint=document.createElementNS(ns,'circle');glint.setAttribute('cx','11');glint.setAttribute('cy','13');glint.setAttribute('r','1');glint.setAttribute('fill','#fff');
+  var mouth=document.createElementNS(ns,'path');mouth.setAttribute('d','M5 19 q3 3 6 0');mouth.setAttribute('stroke','#0b2a3a');mouth.setAttribute('stroke-width','1.5');mouth.setAttribute('fill','none');mouth.setAttribute('stroke-linecap','round');
+  svg.appendChild(tail);svg.appendChild(fin);svg.appendChild(body);svg.appendChild(eye);svg.appendChild(glint);svg.appendChild(mouth);
+  inner.appendChild(svg);
+  var label=document.createElement('div');label.className='label';label.textContent=f.title;inner.appendChild(label);
+  el.appendChild(inner);
+  el.style.transform='translate3d('+f.x.toFixed(1)+'px,'+f.y+'px,0)';
+  return el;
+}
+
+function pickLane(dir,initial){
+  var lanes=Math.max(4,Math.floor((seaH-TOP_PAD-BOT_PAD)/(FH*0.95)));
+  var usable=seaH-TOP_PAD-BOT_PAD-FH, step=lanes>1?usable/(lanes-1):0;
+  var busy={};
+  fish.forEach(function(f){var l=Math.round((f.y-TOP_PAD)/(step||1));
+    var nearEdge=initial||(dir>0?f.x<FW*1.6:f.x>seaW-FW*1.6);
+    if(nearEdge||f.vx*dir<0)busy[l]=true;});
+  lastLanes.forEach(function(l){busy[l]=true;});
+  var free=[];for(var i=0;i<lanes;i++)if(!busy[i])free.push(i);
+  var lane=free.length?free[Math.floor(Math.random()*free.length)]:Math.floor(Math.random()*lanes);
+  lastLanes.push(lane);if(lastLanes.length>2)lastLanes.shift();
+  var y=TOP_PAD+lane*step+(Math.random()*10-5);
+  return Math.max(TOP_PAD,Math.min(seaH-FH-BOT_PAD,Math.round(y)));
+}
+
+/* 1 in 4 fish is an ICP. In round 2, 3 of every 4 ICP fish carry a signal; junk never does. */
+function spawn(initial){
+  var slot=spawnCount%4;if(slot===0)icpSlot=Math.floor(Math.random()*4);
+  var isIcp=(slot===icpSlot);spawnCount++;
+  var title,signal=null;
+  if(isIcp){title=icpOrder[icpIdx++%icpOrder.length];
+    if(round===2){var s4=icpSeen%4;if(s4===0)noSigSlot=Math.floor(Math.random()*4);if(s4!==noSigSlot)signal=SIGNALS[sigIdx++%SIGNALS.length];icpSeen++;}}
+  else title=junkOrder[junkIdx++%junkOrder.length];
+  var dir=Math.random()<0.5?1:-1;
+  var speed=(60+Math.random()*80)*speedMult;
+  var f={id:nextId++,isIcp:isIcp,title:title,signal:signal,vx:dir*speed,hooked:false,bouncing:false,color:COLORS[colorIdx++%COLORS.length],
+    x:initial?Math.random()*(seaW-FW):(dir>0?-FW:seaW),y:0};
+  f.y=pickLane(dir,initial);
+  f.el=makeFish(f);sea.appendChild(f.el);fish.push(f);fishById[f.id]=f;
+}
+
+function clearSea(){fish.forEach(function(f){f.el.remove();if(f.line)f.line.remove();});fish=[];fishById={};
+  Array.prototype.forEach.call(sea.querySelectorAll('.line,.float,.ripple'),function(n){n.remove();});}
+
+function startRound(n){
+  round=n;score=0;icpCaught=0;junkCaught=0;elapsed=0;shownSec=-1;spawnTimer=0;lastLanes=[];
+  spawnCount=0;icpSeen=0;icpIdx=0;junkIdx=0;sigIdx=Math.floor(Math.random()*SIGNALS.length);
+  icpOrder=shuffle(ICP);junkOrder=shuffle(JUNK);
+  clearSea();measure();
+  roundLabel.textContent='';roundLabel.appendChild(document.createTextNode('Round '+n));
+  if(n===2){var s=document.createElement('span');s.className='r2';s.textContent=' · signals';roundLabel.appendChild(s);}
+  scoreEl.textContent='0';timerEl.textContent=String(ROUND_SECS);timerEl.classList.remove('low');
+  show(null);hud.hidden=false;
+  for(var i=0;i<7;i++)spawn(true);
+  running=true;paused=false;lastT=null;
+  if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+}
+
+function loop(t){
+  if(!running){raf=null;return;}
+  if(lastT==null)lastT=t;
+  var dt=(t-lastT)/1000;lastT=t;if(dt>0.1)dt=0.1;if(dt<0)dt=0;
+  elapsed+=dt;
+  var left=ROUND_SECS-elapsed, sec=Math.max(0,Math.ceil(left));
+  if(sec!==shownSec){shownSec=sec;timerEl.textContent=String(sec);if(sec<=10)timerEl.classList.add('low');}
+  spawnTimer-=dt;
+  if(fish.length<TARGET&&spawnTimer<=0){spawn(false);spawnTimer=0.25+Math.random()*0.45;}
+  for(var i=fish.length-1;i>=0;i--){var f=fish[i];
+    if(f.hooked){if(t>=f.removeAt){f.el.remove();if(f.line)f.line.remove();fish.splice(i,1);delete fishById[f.id];}continue;}
+    f.x+=f.vx*dt;
+    if(f.vx>0?f.x>seaW:f.x<-FW){f.el.remove();fish.splice(i,1);delete fishById[f.id];continue;}
+    f.el.style.transform='translate3d('+f.x.toFixed(1)+'px,'+f.y+'px,0)';
+  }
+  if(left<=0){endRound();return;}
+  raf=requestAnimationFrame(loop);
+}
+
+function floatText(x,y,txt,cls){var d=document.createElement('div');d.className='float '+cls;d.textContent=txt;d.style.left=x+'px';d.style.top=y+'px';
+  d.addEventListener('animationend',function(){d.remove();});sea.appendChild(d);}
+
+function hook(f,t){
+  f.hooked=true;f.removeAt=t+440;f.el.classList.add('hooked');
+  var cx=f.x+FW/2, cy=f.y+FH/2;
+  var line=document.createElement('div');line.className='line';line.style.left=Math.round(cx)+'px';line.style.height=Math.round(cy-14)+'px';sea.appendChild(line);f.line=line;
+  var d=f.isIcp?1:-1;score+=d;if(f.isIcp)icpCaught++;else junkCaught++;
+  scoreEl.textContent=String(score);scoreEl.classList.remove('pop');void scoreEl.offsetWidth;scoreEl.classList.add('pop');
+  floatText(Math.round(cx-16),Math.round(cy-30),f.isIcp?'+1':'−1',f.isIcp?'good':'bad');
+}
+function bounce(f){
+  if(f.bouncing)return;f.bouncing=true;f.el.classList.add('bounce');
+  setTimeout(function(){f.bouncing=false;f.el.classList.remove('bounce');},460);
+  floatText(Math.round(f.x+FW/2-38),Math.round(f.y+FH/2-34),'no signal','nosig');
+}
+
+sea.addEventListener('pointerdown',function(e){
+  if(!running)return;
+  if(e.cancelable)e.preventDefault();
+  var el=e.target&&e.target.closest?e.target.closest('.fish'):null;
+  var now=performance.now();
+  if(el){var f=fishById[el.dataset.id];
+    if(f&&!f.hooked){if(round===2&&!f.signal)bounce(f);else hook(f,now);return;}}
+  var r=sea.getBoundingClientRect();var rip=document.createElement('div');rip.className='ripple';rip.style.left=(e.clientX-r.left)+'px';rip.style.top=(e.clientY-r.top)+'px';
+  rip.addEventListener('animationend',function(){rip.remove();});sea.appendChild(rip);
+},{passive:false});
+sea.addEventListener('contextmenu',function(e){e.preventDefault();});
+
+function endRound(){
+  running=false;raf=null;results[round]={score:score,icp:icpCaught,junk:junkCaught};
+  clearSea();hud.hidden=true;
+  if(round===1){
+    setText('#interScore',String(score));
+    setText('#interSub','Landed '+icpCaught+' × '+T+' and '+junkCaught+' junk');
+    show('s-inter');
+  }else showResults();
+}
+
+function fmt(x){return (Math.round(x*10)/10).toString().replace(/\.0$/,'');}
+function showResults(){
+  var r1=results[1], r2=results[2];
+  setText('#r1',String(r1.score));setText('#r2',String(r2.score));
+  setText('#r1d',r1.icp+' × '+T+', '+r1.junk+' junk');
+  setText('#r2d',r2.icp+' × '+T+' with signals, '+r2.junk+' junk');
+  $('#sc2').classList.toggle('win',r2.score>r1.score);
+  var parts;
+  if(r1.icp>0&&r2.icp>=r1.icp*1.5)parts=[{b:fmt(r2.icp/r1.icp)+'x'},' more '+T+' and zero junk, in exactly the same time.'];
+  else if(r1.icp===0&&r2.icp>0)parts=['Round 1: no '+T+' at all. Round 2: ',{b:String(r2.icp)},' in exactly the same time, every one of them in-market.'];
+  else if(r2.icp>0)parts=[{b:String(r2.icp)+' × '+T},' in Round 2, every one of them in-market, and zero junk. Round 1 netted '+r1.junk+' junk to find '+r1.icp+'.'];
+  else if(r1.icp>0)parts=['Nothing landed in Round 2. The signals were there, but they only help if you cast at them.'];
+  else parts=['Not a single '+T+' landed in either round. They were in there.'];
+  fill('#multLine',parts);
+  fill('#quoteLine',['“Same sea, same time. The only thing that changed was knowing where to cast.” ',{b:'— '+FROM}]);
+  var cta=$('#cta');cta.textContent=CTA_LABEL;cta.setAttribute('href',CTA);if(CTA==='#')cta.addEventListener('click',function(e){e.preventDefault();});
+  try{var key='icpfish.best2',prev=localStorage.getItem(key);
+    if(prev!=null&&prev!==''&&!isNaN(+prev)){var be=$('#best');be.textContent='Your best Round 2 so far: '+(+prev);be.hidden=false;}
+    if(prev==null||prev===''||isNaN(+prev)||r2.score>+prev)localStorage.setItem(key,String(r2.score));
+  }catch(e){}
+  show('s-results');
+}
+
+$('#btnStart').addEventListener('click',function(){startRound(1);});
+$('#btnR2').addEventListener('click',function(){startRound(2);});
+
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){if(running){paused=true;if(raf)cancelAnimationFrame(raf);raf=null;}}
+  else if(running&&paused){paused=false;lastT=null;raf=requestAnimationFrame(loop);}
+});
+window.addEventListener('resize',function(){measure();fish.forEach(function(f){if(f.y>seaH-FH-BOT_PAD)f.y=Math.max(TOP_PAD,seaH-FH-BOT_PAD);});});
+measure();
+})();
+</script>
+</body>
+</html>
