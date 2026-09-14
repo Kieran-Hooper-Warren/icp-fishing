@@ -90,6 +90,9 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-sele
 .vs[hidden]{display:none}
 .btn.share{margin-top:10px;min-height:46px;font-size:15px;background:rgba(255,255,255,.12);color:#fff}
 #card{display:none}
+.cardview{padding:14px 14px 18px}
+.cardview img{display:block;width:100%;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.45);margin-bottom:12px;-webkit-touch-callout:default;user-select:auto;-webkit-user-select:auto}
+.cardview .sub{margin:0 0 12px}
 .ripple{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid rgba(255,255,255,.55);border-radius:50%;animation:rip .45s ease-out forwards;pointer-events:none}
 @keyframes rip{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.5);opacity:0}}
 
@@ -175,6 +178,15 @@ html.build #builder{display:block}
     </div>
   </section>
 
+  <section class="screen" id="s-card" hidden>
+    <div class="card cardview">
+      <img id="cardImg" alt="Your ICP Fishing scorecard">
+      <p class="sub" id="cardHint">Tap the button, or long-press the image to save it.</p>
+      <a class="btn" id="cardDl" href="#" download="icp-fishing-scorecard.png">Save scorecard</a>
+      <button class="btn share" id="cardClose" type="button">Back</button>
+    </div>
+  </section>
+
   <section class="screen" id="s-results" hidden>
     <div class="card">
       <h2>Same sea. Different catch.</h2>
@@ -186,7 +198,7 @@ html.build #builder{display:block}
       <p class="mult" id="multLine"></p>
       <p class="quote" id="quoteLine"></p>
       <a class="btn" id="cta" href="#" rel="noopener">Reply</a>
-      <button class="btn share" id="share" type="button">Share my score</button>
+      <button class="btn share" id="share" type="button">Download my scorecard</button>
       <div class="best" id="best" hidden></div>
     </div>
   </section>
@@ -298,7 +310,7 @@ var icpOrder=[], junkOrder=[];
 
 function measure(){seaW=sea.clientWidth;seaH=sea.clientHeight;FW=window.innerWidth>=700?200:176;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function show(id){['s-start','s-inter','s-results'].forEach(function(s){$('#'+s).hidden=(s!==id);});}
+function show(id){['s-start','s-inter','s-results','s-card'].forEach(function(s){$('#'+s).hidden=(s!==id);});}
 function setText(sel,t){$(sel).textContent=t;}
 function fill(sel,parts){var el=$(sel);el.textContent='';parts.forEach(function(p){if(typeof p==='string')el.appendChild(document.createTextNode(p));else{var b=document.createElement('b');b.textContent=p.b;el.appendChild(b);}});}
 
@@ -526,48 +538,62 @@ function shareUrl(r2){
 }
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
 function fishShape(c,x,y,sz,col,flip){c.save();c.translate(x,y);if(flip)c.scale(-1,1);c.fillStyle=col;c.beginPath();c.ellipse(0,0,sz,sz*.55,0,0,Math.PI*2);c.fill();c.beginPath();c.moveTo(-sz*.8,0);c.lineTo(-sz*1.5,-sz*.6);c.lineTo(-sz*1.5,sz*.6);c.closePath();c.fill();c.fillStyle='#fff';c.beginPath();c.arc(sz*.55,-sz*.12,sz*.16,0,Math.PI*2);c.fill();c.fillStyle='#0b2a3a';c.beginPath();c.arc(sz*.6,-sz*.1,sz*.08,0,Math.PI*2);c.fill();c.restore();}
+function rankFor(n){return n>=7?'LEGEND OF THE DEEP':n>=5?'HARPOON HERO':n>=3?'PROPER ANGLER':n>=1?'DECKHAND':'SEA SICK';}
+var FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
 function drawCard(r1,r2){
   var W=1080,H=1080,cv=document.getElementById('card');if(!cv){cv=document.createElement('canvas');cv.id='card';document.body.appendChild(cv);}
-  cv.width=W;cv.height=H;var c=cv.getContext('2d');
+  cv.width=W;cv.height=H;var c=cv.getContext('2d');var seed=7;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
+  /* sea */
   var g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a2f5c');g.addColorStop(.5,'#0d5278');g.addColorStop(1,'#107a88');c.fillStyle=g;c.fillRect(0,0,W,H);
-  c.globalAlpha=.9;var cols=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];
-  for(var i=0;i<14;i++){fishShape(c,80+((i*173)%920),120+((i*257)%880),26+(i%3)*8,cols[i%cols.length],i%2===0);}c.globalAlpha=1;
-  c.fillStyle='rgba(4,25,45,.86)';rr(c,90,150,900,780,44);c.fill();c.strokeStyle='rgba(255,255,255,.14)';c.lineWidth=3;c.stroke();
-  c.textAlign='center';c.fillStyle='#ffd23f';c.font='700 30px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
-  c.fillText((TO==='You'?'ICP FISHING':('MADE FOR '+TO+(COMPANY?' · '+COMPANY:'')).toUpperCase()).slice(0,40),W/2,230);
-  c.fillStyle='#fff';c.font='900 76px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';c.fillText('🎣 ICP Fishing',W/2,330);
-  function box(x,label,n,sub,win){c.fillStyle=win?'rgba(255,210,63,.16)':'rgba(255,255,255,.08)';rr(c,x,400,380,260,28);c.fill();if(win){c.strokeStyle='rgba(255,210,63,.6)';c.lineWidth=3;c.stroke();}
-    c.fillStyle='#9fd3e8';c.font='700 26px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(label,x+190,450);
-    c.fillStyle='#fff';c.font='900 130px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(String(n),x+190,580);
-    c.fillStyle='#bfe3f2';c.font='600 24px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText(sub,x+190,632);}
-  box(130,'ROUND 1',r1.score,r1.icp+' × '+T.slice(0,18)+', '+r1.junk+' junk',false);box(570,'ROUND 2',r2.score,r2.icp+' × '+T.slice(0,18)+', 0 junk',r2.score>r1.score);
-  c.fillStyle='#fff';c.font='600 34px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';
-  c.fillText('Same sea. 10 seconds. The only thing that changed',W/2,730);c.fillText('was knowing where to cast.',W/2,778);
-  c.fillStyle='#ffd23f';c.font='700 30px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText('Think you can beat '+r2.score+'? Link in the post.',W/2,860);
-  c.fillStyle='#8fb8cc';c.font='600 24px -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';c.fillText('An outbound experiment by '+FROM,W/2,1000);
+  /* sunburst */
+  c.save();c.translate(W/2,-80);for(var i=0;i<18;i++){c.rotate(Math.PI/18);c.fillStyle=i%2?'rgba(255,255,255,.06)':'rgba(255,210,63,.10)';c.beginPath();c.moveTo(0,0);c.lineTo(-70,1500);c.lineTo(70,1500);c.closePath();c.fill();}c.restore();
+  /* fish */
+  var cols=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];c.globalAlpha=.85;
+  for(i=0;i<16;i++){var fy=90+rnd()*940;if(fy>930)fy-=140;fishShape(c,60+rnd()*960,fy,22+rnd()*20,cols[i%cols.length],rnd()<.5);}c.globalAlpha=1;
+  /* confetti */
+  for(i=0;i<90;i++){c.save();c.translate(rnd()*W,rnd()*H);c.rotate(rnd()*Math.PI);c.fillStyle=['#ffd23f','#ff7a59','#7be0c0','#fff','#c9b6ff','#ff9fb2'][i%6];c.globalAlpha=.75;c.fillRect(-7,-3,14,6);c.restore();}c.globalAlpha=1;
+  /* panel */
+  c.save();c.shadowColor='rgba(0,0,0,.5)';c.shadowBlur=40;c.shadowOffsetY=16;c.fillStyle='rgba(4,25,45,.9)';rr(c,80,130,920,830,46);c.fill();c.restore();
+  c.strokeStyle='rgba(255,210,63,.55)';c.lineWidth=4;rr(c,80,130,920,830,46);c.stroke();c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=2;rr(c,96,146,888,798,36);c.stroke();
+  /* ribbon */
+  c.save();c.translate(190,215);c.rotate(-Math.PI/9);c.fillStyle='#ffd23f';c.shadowColor='rgba(0,0,0,.45)';c.shadowBlur=14;c.shadowOffsetY=6;rr(c,-190,-26,380,52,10);c.fill();c.shadowColor='transparent';c.fillStyle='#3b2a00';c.textAlign='center';c.textBaseline='middle';c.font='900 26px '+FONT;c.fillText('OFFICIAL SCORECARD',0,1);c.restore();
+  c.textAlign='center';c.textBaseline='alphabetic';
+  /* title */
+  c.save();c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=0;c.shadowOffsetY=8;var tg=c.createLinearGradient(0,240,0,340);tg.addColorStop(0,'#fff6c2');tg.addColorStop(.5,'#ffd23f');tg.addColorStop(1,'#ffab00');c.fillStyle=tg;c.font='900 92px '+FONT;c.fillText('ICP FISHING',W/2,335);c.restore();
+  c.fillStyle='#9fd3e8';c.font='700 30px '+FONT;c.fillText((TO==='You'?'ONE PLAYER, TWO SEAS':('MADE FOR '+TO+(COMPANY?' · '+COMPANY:'')).toUpperCase()).slice(0,42),W/2,385);
+  /* rank pill */
+  var rank='RANK: '+rankFor(r2.score);c.font='900 28px '+FONT;var rw=c.measureText(rank).width+60;c.fillStyle='#ffd23f';rr(c,W/2-rw/2,410,rw,52,26);c.fill();c.fillStyle='#3b2a00';c.fillText(rank,W/2,447);
+  /* score boxes */
+  function box(x,label,n,sub,win){c.save();if(win){c.shadowColor='rgba(255,210,63,.75)';c.shadowBlur=40;}c.fillStyle=win?'rgba(255,210,63,.18)':'rgba(255,255,255,.08)';rr(c,x,500,380,250,28);c.fill();c.restore();
+    c.strokeStyle=win?'rgba(255,210,63,.9)':'rgba(255,255,255,.15)';c.lineWidth=3;rr(c,x,500,380,250,28);c.stroke();
+    c.fillStyle='#9fd3e8';c.font='800 26px '+FONT;c.fillText(label,x+190,548);
+    c.fillStyle='#fff';c.font='900 128px '+FONT;c.fillText(String(n),x+190,676);
+    c.fillStyle='#bfe3f2';c.font='600 23px '+FONT;c.fillText(sub,x+190,726);}
+  box(130,'ROUND 1 · NO SIGNALS',r1.score,r1.icp+' × '+T.slice(0,16)+', '+r1.junk+' junk',false);
+  box(570,'ROUND 2 · SIGNALS',r2.score,r2.icp+' × '+T.slice(0,16)+', zero junk',r2.score>r1.score);
+  /* quote */
+  c.fillStyle='rgba(255,255,255,.07)';rr(c,130,790,820,120,24);c.fill();
+  c.fillStyle='#ffd23f';c.beginPath();c.arc(200,850,34,0,Math.PI*2);c.fill();c.fillStyle='#3b2a00';c.font='900 34px '+FONT;c.fillText((FROM[0]||'K').toUpperCase(),200,862);
+  c.textAlign='left';c.fillStyle='#fff';c.font='italic 700 34px '+FONT;c.fillText('“If only they’d listened to me.”',260,842);
+  c.fillStyle='#9fd3e8';c.font='700 24px '+FONT;c.fillText('— '+FROM+', the guy asking for your attention',260,882);
+  c.textAlign='center';
+  /* stamp */
+  c.save();c.translate(905,235);c.rotate(Math.PI/10);c.strokeStyle='rgba(124,245,184,.9)';c.lineWidth=6;c.beginPath();c.arc(0,0,74,0,Math.PI*2);c.stroke();c.lineWidth=2;c.beginPath();c.arc(0,0,62,0,Math.PI*2);c.stroke();c.fillStyle='rgba(124,245,184,.95)';c.font='900 20px '+FONT;c.fillText('CERTIFIED',0,-8);c.fillText('CATCH ✓',0,18);c.restore();
+  /* footer */
+  c.fillStyle='#8fb8cc';c.font='600 24px '+FONT;c.fillText('Same sea. 10 seconds. Only the signals changed.',W/2,1000);
+  c.fillStyle='rgba(255,255,255,.45)';c.font='600 20px '+FONT;c.fillText(location.host+location.pathname.replace(/\/[^\/]*$/,'/'),W/2,1040);
   return cv;
 }
 function setupShare(r1,r2){
-  var btn=$('#share'),url=shareUrl(r2);btn.dataset.url=url;
-  var text=(TO==='You'?'I':TO)+' scored '+r2.score+' in Round 2 of ICP Fishing. Same sea, 10 seconds, just better signals. Beat it: '+url;
+  var btn=$('#share');btn.dataset.url=shareUrl(r2);
   btn.onclick=function(){
-    btn.textContent='Sharing…';var cv=drawCard(r1,r2);setTimeout(function(){if(btn.textContent==='Sharing…')btn.textContent='Share my score';},4000);
-    function copyLink(){var done=function(){btn.textContent='Link copied. Paste it anywhere.';};
-      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,function(){btn.textContent=url;});else btn.textContent=url;}
-    function reset(){setTimeout(function(){btn.textContent='Share my score';},2500);}
-    var blobReady=new Promise(function(res){if(cv.toBlob)cv.toBlob(res,'image/png');else res(null);});
-    blobReady.then(function(blob){
-      var file=null;try{if(blob&&window.File)file=new File([blob],'icp-fishing-'+r2.score+'.png',{type:'image/png'});}catch(e){}
-      if(navigator.share){
-        var data={title:'ICP Fishing',text:text,url:url};
-        if(file&&navigator.canShare&&navigator.canShare({files:[file]}))data={title:'ICP Fishing',text:text,files:[file]};
-        return navigator.share(data).then(function(){btn.textContent='Shared ✓';reset();},function(){copyLink();reset();});
-      }
-      if(blob){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='icp-fishing-'+r2.score+'.png';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);}
-      copyLink();reset();
-    });
+    btn.textContent='Drawing…';var cv=drawCard(r1,r2);var name='icp-fishing-scorecard-'+(TO==='You'?'':TO.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-')+r2.score+'.png';
+    function open(url){var img=$('#cardImg'),a=$('#cardDl');img.src=url;a.href=url;a.setAttribute('download',name);btn.textContent='Download my scorecard';
+      show('s-card');if(!('ontouchstart' in window)){try{a.click();}catch(e){}}}
+    if(cv.toBlob)cv.toBlob(function(b){open(b?URL.createObjectURL(b):cv.toDataURL('image/png'));},'image/png');else open(cv.toDataURL('image/png'));
   };
 }
+$('#cardClose').addEventListener('click',function(){show('s-results');});
 
 $('#btnStart').addEventListener('click',function(){startRound(1);});
 $('#btnR2').addEventListener('click',function(){startRound(2);});
