@@ -3,7 +3,7 @@
 
 Example:
   python3 make.py --to Dave --company Shell --icp "COO, Chief Operating Officer, VP Operations" \
-      --cta "https://calendly.com/kieran/15min" --ctaLabel "Book 15 min with Kieran"
+      --cta "https://calendly.com/kieran/15min"
 
 Writes docs/<slug>/index.html and refreshes docs/index.html from the template.
 Add --publish to commit, push to GitHub and print the live link.
@@ -29,7 +29,6 @@ def main():
     p.add_argument("--junk", default="", help="Optional comma-separated wrong-fit titles (blank = built-in list)")
     p.add_argument("--from", dest="sender", default="Kieran", help="Your name")
     p.add_argument("--cta", default="", help="Button link, e.g. https://... or mailto:...")
-    p.add_argument("--ctaLabel", default="", help="Button text (default: Reply to <from>)")
     p.add_argument("--slug", default="", help="URL path (default: from --to, plus company if given)")
     p.add_argument("--publish", action="store_true", help="git commit + push so the link goes live")
     a = p.parse_args()
@@ -41,7 +40,7 @@ def main():
         sys.exit("template is missing the cfg marker")
 
     cfg = {"to": a.to.strip(), "icp": a.icp.strip(), "from": a.sender.strip()}
-    for k, v in (("company", a.company), ("junk", a.junk), ("cta", a.cta), ("ctaLabel", a.ctaLabel)):
+    for k, v in (("company", a.company), ("junk", a.junk), ("cta", a.cta)):
         if v.strip():
             cfg[k] = v.strip()
     payload = json.dumps(cfg, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")

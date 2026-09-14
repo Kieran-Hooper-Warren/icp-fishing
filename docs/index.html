@@ -89,7 +89,6 @@ html.build #builder{display:block}
 .row{display:flex;gap:10px;margin-top:10px}
 .row .btn{min-height:46px;font-size:16px}
 .btn.ghost{background:rgba(255,255,255,.12);color:#fff}
-#builder h3{font-size:15px;margin:26px 0 4px;color:#ffd23f}
 
 @media (prefers-reduced-motion:reduce){
   .fish.signal .halo{animation:none;opacity:.9}
@@ -105,7 +104,7 @@ html.build #builder{display:block}
   <div id="sea"></div>
   <div id="hud" hidden>
     <span class="pill" id="roundLabel">Round 1</span>
-    <span class="pill" id="timer">30</span>
+    <span class="pill" id="timer">10</span>
     <span class="pill">Score <b id="score">0</b></span>
   </div>
 
@@ -123,7 +122,7 @@ html.build #builder{display:block}
       <h2>Round 1 done</h2>
       <div class="big" id="interScore">0</div>
       <p class="sub" id="interSub"></p>
-      <p class="lead">Same sea, same 30 seconds. This time some fish are giving off signals.</p>
+      <p class="lead">Same sea, same 10 seconds. This time some fish are giving off signals.</p>
       <div class="rule"><span class="tag">Signal</span><div><b>Only fish with a signal can be hooked.</b><small id="ruleSmall"></small></div></div>
       <button class="btn" id="btnR2" type="button">Round 2</button>
     </div>
@@ -153,17 +152,11 @@ html.build #builder{display:block}
   <div class="hint">First title is the one named on screen. Max 12.</div>
   <label for="b-junk">Junk titles, comma separated (junk)</label><input id="b-junk" data-k="junk" placeholder="Leave blank for the built-in list" autocomplete="off">
   <label for="b-from">Your name (from)</label><input id="b-from" data-k="from" placeholder="Kieran" autocomplete="off">
-  <label for="b-cta">Button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://… or mailto:…" autocomplete="off" inputmode="url">
-  <label for="b-ctaLabel">Button text (ctaLabel)</label><input id="b-ctaLabel" data-k="ctaLabel" placeholder="Reply to Kieran" autocomplete="off">
+  <label for="b-cta">"Book a call" button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://calendly.com/… " autocomplete="off" inputmode="url">
+  <div class="hint">The button always says "Book a call w/Kieran". Paste where it should go.</div>
 
-  <h3>Option A: personal page (clean link)</h3>
-  <p>Downloads a self-contained <span id="b-fname">dave.html</span> with these details baked in. Drop it into your Netlify site folder and send <span id="b-clean">/dave</span>.</p>
-  <div class="row"><button class="btn" id="b-download" type="button">Download page</button></div>
-  <div class="hint" id="b-dlhint"></div>
-
-  <h3>Option B: share link</h3>
-  <label for="b-out">URL with the details in the query string</label><textarea id="b-out" readonly></textarea>
-  <div class="row"><button class="btn ghost" id="b-copy" type="button">Copy link</button><a class="btn ghost" id="b-open" href="#" target="_blank" rel="noopener">Open</a></div>
+  <label for="b-out">Link to send</label><textarea id="b-out" readonly></textarea>
+  <div class="row"><button class="btn" id="b-copy" type="button">Copy link</button><a class="btn ghost" id="b-open" href="#" target="_blank" rel="noopener">Open</a></div>
 </div>
 
 <script>
@@ -176,7 +169,7 @@ var DEF_ICP=['Head of Operations','Operations Director','COO'];
 var DEF_JUNK=['Student','Marketing Intern','Growth Consultant','Founder, 2-person startup','Recruiter','Freelance Web Designer','VP Sales (competitor)','Crypto Advisor','Business Coach','Retired'];
 var SIGNALS=['hiring','just raised','new CTO','switched tooling','new office','hiring ops'];
 var COLORS=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];
-var ROUND_SECS=30, TARGET=8, MAX_LIST=12;
+var ROUND_SECS=10, TARGET=9, MAX_LIST=12;
 
 function raw(k){var v=params.get(k);if(v==null&&baked[k]!=null)v=Array.isArray(baked[k])?baked[k].join(','):String(baked[k]);return v;}
 function str(k,d){var v=raw(k);if(v==null)return d;v=v.trim();return v?v.slice(0,80):d;}
@@ -187,21 +180,18 @@ function safeUrl(u){u=(u||'').trim();if(!u)return '#';if(/^\s*(javascript|data|v
 function article(t){return /^[aeiou]/i.test(t)?'an':'a';}
 
 var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=list('icp',DEF_ICP), JUNK=list('junk',DEF_JUNK),
-    CTA=safeUrl(str('cta','#')), CTA_LABEL=str('ctaLabel','Reply to '+FROM);
+    CTA=safeUrl(str('cta','#')), CTA_LABEL='Book a call w/'+FROM;
 
 /* ---------- Link builder ---------- */
 if(params.get('build')==='1'){
   document.documentElement.classList.add('build');
   var inputs=Array.prototype.slice.call(document.querySelectorAll('#builder input[data-k]'));
-  var out=$('#b-out'), open=$('#b-open'), copy=$('#b-copy'), dl=$('#b-download'), dlhint=$('#b-dlhint');
+  var out=$('#b-out'), open=$('#b-open'), copy=$('#b-copy');
   var base=location.href.split(/[?#]/)[0];
   inputs.forEach(function(i){var v=raw(i.dataset.k);if(v)i.value=v;});
-  function slug(){var s=($('#b-to').value.trim()||'prospect').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');return s||'prospect';}
-  function cfg(){var c={};inputs.forEach(function(i){var v=i.value.trim();if(v)c[i.dataset.k]=v;});return c;}
   function update(){
     var q=[];inputs.forEach(function(i){var v=i.value.trim();if(v)q.push(i.dataset.k+'='+encodeURIComponent(v).replace(/%2C/g,','));});
     var url=base+(q.length?'?'+q.join('&'):'');out.value=url;open.href=url;
-    $('#b-fname').textContent=slug()+'.html';$('#b-clean').textContent='/'+slug();
   }
   inputs.forEach(function(i){i.addEventListener('input',update);});
   update();
@@ -209,18 +199,6 @@ if(params.get('build')==='1'){
     var done=function(){copy.textContent='Copied ✓';setTimeout(function(){copy.textContent='Copy link';},1400);};
     function fallback(){out.focus();out.select();try{document.execCommand('copy');done();}catch(e){copy.textContent='Select + copy manually';}}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(out.value).then(done,fallback);}else fallback();
-  });
-  dl.addEventListener('click',function(){
-    dlhint.textContent='Building…';
-    var json=JSON.stringify(cfg()).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
-    fetch(base,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.text();}).then(function(src){
-      var re=/<script type="application\/json" id="cfg">[\s\S]*?<\/script>/;
-      if(!re.test(src))throw new Error('template marker missing');
-      var html=src.replace(re,function(){return '<script type="application/json" id="cfg">'+json+'<\/script>';});
-      var blob=new Blob([html],{type:'text/html'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slug()+'.html';document.body.appendChild(a);a.click();
-      setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
-      dlhint.textContent='Downloaded '+slug()+'.html. Drop it into the Netlify site folder, redeploy, and send /'+slug()+'.';
-    }).catch(function(e){dlhint.textContent='Could not build the page here ('+e.message+'). This works when the builder is opened over http(s), e.g. on the Netlify site. Use make.py locally instead.';});
   });
   return;
 }
@@ -249,7 +227,7 @@ function fill(sel,parts){var el=$(sel);el.textContent='';parts.forEach(function(
 var T=ICP[0];
 if(TO!=='You')document.title=TO+"'s ICP Fishing";
 setText('#madeFor',TO==='You'?'Your personal game':('Made for '+TO+(COMPANY?' · '+COMPANY:'')));
-fill('#startLine',[TO+', you have 30 seconds to land '+article(T)+' ',{b:T},COMPANY?' for '+COMPANY+'.':'.']);
+fill('#startLine',[TO+', you have 10 seconds to land '+article(T)+' ',{b:T},COMPANY?' for '+COMPANY+'.':'.']);
 setText('#ruleSmall',article(T).replace(/^a/,'A')+' '+T+' with no signal bounces off the line. So does everything else.');
 
 function makeFish(f){
@@ -288,16 +266,16 @@ function pickLane(dir,initial){
   return Math.max(TOP_PAD,Math.min(seaH-FH-BOT_PAD,Math.round(y)));
 }
 
-/* 1 in 4 fish is an ICP. In round 2, 3 of every 4 ICP fish carry a signal; junk never does. */
+/* 1 in 3 fish is an ICP. In round 2, 3 of every 4 ICP fish carry a signal (never the first of a block); junk never does. */
 function spawn(initial){
-  var slot=spawnCount%4;if(slot===0)icpSlot=Math.floor(Math.random()*4);
+  var slot=spawnCount%3;if(slot===0)icpSlot=Math.floor(Math.random()*3);
   var isIcp=(slot===icpSlot);spawnCount++;
   var title,signal=null;
   if(isIcp){title=icpOrder[icpIdx++%icpOrder.length];
-    if(round===2){var s4=icpSeen%4;if(s4===0)noSigSlot=Math.floor(Math.random()*4);if(s4!==noSigSlot)signal=SIGNALS[sigIdx++%SIGNALS.length];icpSeen++;}}
+    if(round===2){var s4=icpSeen%4;if(s4===0)noSigSlot=1+Math.floor(Math.random()*3);if(s4!==noSigSlot)signal=SIGNALS[sigIdx++%SIGNALS.length];icpSeen++;}}
   else title=junkOrder[junkIdx++%junkOrder.length];
   var dir=Math.random()<0.5?1:-1;
-  var speed=(60+Math.random()*80)*speedMult;
+  var speed=(85+Math.random()*95)*speedMult;
   var f={id:nextId++,isIcp:isIcp,title:title,signal:signal,vx:dir*speed,hooked:false,bouncing:false,color:COLORS[colorIdx++%COLORS.length],
     x:initial?Math.random()*(seaW-FW):(dir>0?-FW:seaW),y:0};
   f.y=pickLane(dir,initial);
@@ -316,7 +294,7 @@ function startRound(n){
   if(n===2){var s=document.createElement('span');s.className='r2';s.textContent=' · signals';roundLabel.appendChild(s);}
   scoreEl.textContent='0';timerEl.textContent=String(ROUND_SECS);timerEl.classList.remove('low');
   show(null);hud.hidden=false;
-  for(var i=0;i<7;i++)spawn(true);
+  for(var i=0;i<8;i++)spawn(true);
   running=true;paused=false;lastT=null;
   if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
 }
@@ -327,9 +305,9 @@ function loop(t){
   var dt=(t-lastT)/1000;lastT=t;if(dt>0.1)dt=0.1;if(dt<0)dt=0;
   elapsed+=dt;
   var left=ROUND_SECS-elapsed, sec=Math.max(0,Math.ceil(left));
-  if(sec!==shownSec){shownSec=sec;timerEl.textContent=String(sec);if(sec<=10)timerEl.classList.add('low');}
+  if(sec!==shownSec){shownSec=sec;timerEl.textContent=String(sec);if(sec<=3)timerEl.classList.add('low');}
   spawnTimer-=dt;
-  if(fish.length<TARGET&&spawnTimer<=0){spawn(false);spawnTimer=0.25+Math.random()*0.45;}
+  if(fish.length<TARGET&&spawnTimer<=0){spawn(false);spawnTimer=0.15+Math.random()*0.3;}
   for(var i=fish.length-1;i>=0;i--){var f=fish[i];
     if(f.hooked){if(t>=f.removeAt){f.el.remove();if(f.line)f.line.remove();fish.splice(i,1);delete fishById[f.id];}continue;}
     f.x+=f.vx*dt;
