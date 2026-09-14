@@ -187,8 +187,8 @@ html.build #builder{display:block}
   <div class="hint" id="b-icphint">First title is the one named on screen. Known titles pull in their variations automatically.</div>
   <label for="b-junk">Junk titles, comma separated (junk)</label><input id="b-junk" data-k="junk" placeholder="Leave blank for the built-in list" autocomplete="off">
   <label for="b-from">Your name (from)</label><input id="b-from" data-k="from" placeholder="Kieran" autocomplete="off">
-  <label for="b-cta">"Book a call" button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://calendly.com/khw-r6mn" autocomplete="off" inputmode="url">
-  <div class="hint">Leave blank for your Calendly. The button always says "Book a call w/Kieran".</div>
+  <label for="b-cta">End button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://calendly.com/khw-r6mn" autocomplete="off" inputmode="url">
+  <div class="hint">Leave blank for your Calendly. The button always says "Say hi to the guy asking for your attention".</div>
 
   <label for="b-out">Link to send</label><textarea id="b-out" readonly></textarea>
   <div class="row"><button class="btn" id="b-copy" type="button">Copy link</button><a class="btn ghost" id="b-open" href="#" target="_blank" rel="noopener">Open</a></div>
@@ -243,7 +243,7 @@ function safeUrl(u){u=(u||'').trim();if(!u)return '#';if(/^\s*(javascript|data|v
 function article(t){return /^[aeiou]/i.test(t)?'an':'a';}
 
 var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=expandTitles(list('icp',DEF_ICP)),
-    CTA=safeUrl(str('cta',DEFAULT_CTA)), CTA_LABEL='Book a call w/'+FROM;
+    CTA=safeUrl(str('cta',DEFAULT_CTA)), CTA_LABEL='Say hi to the guy asking for your attention';
 var icpSet={};ICP.forEach(function(t){icpSet[norm(t)]=1;});
 var JUNK=list('junk',DEF_JUNK).filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=DEF_JUNK.filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=['Student','Recruiter','Retired'];
 
