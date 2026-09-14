@@ -11,6 +11,12 @@ It prints the link to send. `--publish` commits and pushes; GitHub Pages goes li
 
 Or, with no publishing at all, open https://kieran-hooper-warren.github.io/icp-fishing/?build=1, fill the form and copy the long link.
 
+## Boss battle
+After Round 2 the player can fight a random boss (IT Director or Finance Director): tap to fire arrows,
+4 timed hits win, 20-second timer. All objection/rebuttal copy is in the `BOSSES` object near the bottom of
+`index.html`. The fight loads Three.js r128 from cdnjs on demand, so it needs an internet connection;
+the fishing rounds still work offline.
+
 ## Files
 - `index.html` — the game and the template.
 - `make.py` — makes one prospect's page under `docs/<slug>/`.
