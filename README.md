@@ -17,4 +17,7 @@ Or, with no publishing at all, open https://kieran-hooper-warren.github.io/icp-f
 - `docs/` — what GitHub Pages serves. Do not edit by hand.
 
 ## Parameters (query string or baked in)
-`to`, `company`, `icp`, `junk`, `from`, `cta`. All optional. The button always reads "Book a call w/<from>".
+`to`, `company`, `icp`, `junk`, `from`, `cta`. All optional. The button always reads "Book a call w/<from>" and
+goes to https://calendly.com/khw-r6mn unless `cta` is set. Known ICP titles (COO, CFO, Head of Facilities, ...)
+automatically pull in their variations, e.g. `icp=COO` also fishes for Chief Operating Officer, Head of Operations,
+Operations Director and VP Operations. Unknown titles are used exactly as typed.

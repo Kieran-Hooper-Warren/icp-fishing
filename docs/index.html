@@ -149,11 +149,11 @@ html.build #builder{display:block}
   <label for="b-to">Prospect first name (to)</label><input id="b-to" data-k="to" placeholder="Dave" autocomplete="off">
   <label for="b-company">Prospect's company (company)</label><input id="b-company" data-k="company" placeholder="Shell" autocomplete="off">
   <label for="b-icp">Who they sell to, comma separated (icp)</label><input id="b-icp" data-k="icp" placeholder="COO, Chief Operating Officer, VP Operations" autocomplete="off">
-  <div class="hint">First title is the one named on screen. Max 12.</div>
+  <div class="hint" id="b-icphint">First title is the one named on screen. Known titles pull in their variations automatically.</div>
   <label for="b-junk">Junk titles, comma separated (junk)</label><input id="b-junk" data-k="junk" placeholder="Leave blank for the built-in list" autocomplete="off">
   <label for="b-from">Your name (from)</label><input id="b-from" data-k="from" placeholder="Kieran" autocomplete="off">
-  <label for="b-cta">"Book a call" button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://calendly.com/… " autocomplete="off" inputmode="url">
-  <div class="hint">The button always says "Book a call w/Kieran". Paste where it should go.</div>
+  <label for="b-cta">"Book a call" button link (cta)</label><input id="b-cta" data-k="cta" placeholder="https://calendly.com/khw-r6mn" autocomplete="off" inputmode="url">
+  <div class="hint">Leave blank for your Calendly. The button always says "Book a call w/Kieran".</div>
 
   <label for="b-out">Link to send</label><textarea id="b-out" readonly></textarea>
   <div class="row"><button class="btn" id="b-copy" type="button">Copy link</button><a class="btn ghost" id="b-open" href="#" target="_blank" rel="noopener">Open</a></div>
@@ -170,6 +170,34 @@ var DEF_JUNK=['Student','Marketing Intern','Growth Consultant','Founder, 2-perso
 var SIGNALS=['hiring','just raised','new CTO','switched tooling','new office','hiring ops'];
 var COLORS=['#ff7a59','#ffd166','#7be0c0','#c9b6ff','#f8fafc','#ff9fb2','#8ad3ff'];
 var ROUND_SECS=10, TARGET=9, MAX_LIST=12;
+var DEFAULT_CTA='https://calendly.com/khw-r6mn';
+/* Title families: typing any one of these pulls in the rest, so "COO" also fishes for Heads of Operations. */
+var FAMILIES=[
+ ['COO','Chief Operating Officer','Head of Operations','Operations Director','VP Operations','Director of Operations'],
+ ['CFO','Chief Financial Officer','Finance Director','Head of Finance','VP Finance','Financial Controller'],
+ ['CTO','Chief Technology Officer','Head of Engineering','VP Engineering','Engineering Director','Technical Director'],
+ ['CMO','Chief Marketing Officer','Marketing Director','Head of Marketing','VP Marketing'],
+ ['CRO','Chief Revenue Officer','Sales Director','Head of Sales','VP Sales','Commercial Director'],
+ ['CEO','Chief Executive Officer','Founder','Co-Founder','Managing Director','Owner'],
+ ['Chief People Officer','HR Director','Head of People','Head of HR','People Director','VP People'],
+ ['CIO','Chief Information Officer','IT Director','Head of IT','VP IT'],
+ ['CISO','Chief Information Security Officer','Head of Security','Security Director'],
+ ['Head of Facilities','Facilities Manager','Facilities Director','Estates Manager','Head of Estates','Estates Director'],
+ ['Head of Procurement','Procurement Director','Procurement Manager','Purchasing Manager','Head of Purchasing'],
+ ['Head of Supply Chain','Supply Chain Director','Logistics Director','Head of Logistics','Supply Chain Manager'],
+ ['Head of Customer Success','Customer Success Director','VP Customer Success','Head of Customer Experience'],
+ ['Head of Product','Product Director','VP Product','Chief Product Officer'],
+ ['Head of Growth','Growth Director','VP Growth','Head of Demand Generation'],
+ ['Head of Talent','Talent Acquisition Director','Head of Recruitment','Talent Director']
+];
+function norm(t){return t.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function expandTitles(list){
+  var out=[],seen={};
+  function add(t){var k=norm(t);if(!k||seen[k])return;seen[k]=1;out.push(t);}
+  list.forEach(function(t){add(t);
+    FAMILIES.forEach(function(fam){if(fam.some(function(a){return norm(a)===norm(t);}))fam.forEach(add);});});
+  return out.slice(0,MAX_LIST);
+}
 
 function raw(k){var v=params.get(k);if(v==null&&baked[k]!=null)v=Array.isArray(baked[k])?baked[k].join(','):String(baked[k]);return v;}
 function str(k,d){var v=raw(k);if(v==null)return d;v=v.trim();return v?v.slice(0,80):d;}
@@ -179,8 +207,10 @@ function list(k,d){var v=raw(k);if(v==null||!v.trim())return d.slice();
 function safeUrl(u){u=(u||'').trim();if(!u)return '#';if(/^\s*(javascript|data|vbscript):/i.test(u))return '#';return u;}
 function article(t){return /^[aeiou]/i.test(t)?'an':'a';}
 
-var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=list('icp',DEF_ICP), JUNK=list('junk',DEF_JUNK),
-    CTA=safeUrl(str('cta','#')), CTA_LABEL='Book a call w/'+FROM;
+var TO=str('to','You'), COMPANY=str('company',''), FROM=str('from','Kieran'), ICP=expandTitles(list('icp',DEF_ICP)),
+    CTA=safeUrl(str('cta',DEFAULT_CTA)), CTA_LABEL='Book a call w/'+FROM;
+var icpSet={};ICP.forEach(function(t){icpSet[norm(t)]=1;});
+var JUNK=list('junk',DEF_JUNK).filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=DEF_JUNK.filter(function(t){return !icpSet[norm(t)];});if(!JUNK.length)JUNK=['Student','Recruiter','Retired'];
 
 /* ---------- Link builder ---------- */
 if(params.get('build')==='1'){
@@ -192,6 +222,8 @@ if(params.get('build')==='1'){
   function update(){
     var q=[];inputs.forEach(function(i){var v=i.value.trim();if(v)q.push(i.dataset.k+'='+encodeURIComponent(v).replace(/%2C/g,','));});
     var url=base+(q.length?'?'+q.join('&'):'');out.value=url;open.href=url;
+    var typed=$('#b-icp').value.split(',').map(function(t){return t.trim();}).filter(Boolean).slice(0,MAX_LIST);
+    $('#b-icphint').textContent=typed.length?'Game will fish for: '+expandTitles(typed).join(', '):'First title is the one named on screen. Known titles pull in their variations automatically.';
   }
   inputs.forEach(function(i){i.addEventListener('input',update);});
   update();
